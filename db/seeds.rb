@@ -8,16 +8,95 @@
 
 # define the order of seed below
 
-seed_order = %w(users events)
+# seed_order = %w(users events)
+require 'csv'
 
+# helper functions
+def insert_in_bulk(klass, records)
+  now = Time.now
+  records = records.map { |e| e.merge(created_at: now, updated_at: now)  }
+  begin
+    klass.insert_all! records
+  rescue StandardError => ex
+    puts ex.full_message(highlight: true, order: :bottom)
+  end
+end
+
+seed_order = %w(users)
 seed_files = seed_order.map { |file_name| Rails.root.join('db', 'seeds', "#{file_name}.csv") };
 
-seed_files.each do |seed|
+# assumes csv has all required columns, except timestamps, which will be added by the function
+seed_files.each do |seed_file|
   start_time = Time.now
-  documents = YAML.load_file(seed)
-  klass = File.basename(seed, '.yml').classify.constantize
-  klass.transaction do
-    documents.each {|doc| klass.create(doc)}
-  end
-  puts "#{klass.count} #{klass.to_s.pluralize} seeded into db (#{(Time.now - start_time).round(2)} sec)"
+  klass = File.basename(seed_file, '.csv').classify.constantize
+
+  records = []
+  CSV.foreach(seed_file, headers: true) { |row| records << row.to_h }
+  insert_in_bulk(klass, records)
 end
+
+# CUSTOM SEED functions below
+def seed_events_from_csv(seed_file)
+  # seed rsvps
+  username_h = User.pluck(:username,:id).to_h
+  rsvp_values = []
+
+  # seed each event, and collect it's rsvps
+  CSV.foreach(seed_file, headers: true) do |row|
+    allday = ActiveModel::Type::Boolean.new.cast(row["allday"])
+
+    next if !allday && (DateTime.parse(row["endtime"]) < DateTime.parse(row["starttime"]))
+
+    event = Event.create!(row.to_h.merge(allday: allday).except(AppConstant::Defaults::USER_RSVP_COLUMN))
+
+    # handle rsvp to event - at different times
+    rsvp_values += row[AppConstant::Defaults::USER_RSVP_COLUMN].to_s.split(AppConstant::Defaults::RSVP_USER_SEPARATOR).map do |val|
+      username, rsvp = val.split(AppConstant::Defaults::RSVP_VALUE_SEPARATOR)
+      { event_id: event.id, user_id: username_h[username], rsvp: rsvp }
+    end
+  end
+
+  # process, user -events, to update rsvp values
+
+  # seed rsvps in bulk
+  insert_in_bulk(EventUser, rsvp_values)
+
+  # rsvp_values.each do |entry|
+  #   EventUser.create!(entry)
+  # end;
+end
+seed_events_from_csv('db/seeds/events.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
