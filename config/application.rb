@@ -21,6 +21,8 @@ module App
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
 
+    config.eager_load_paths += %W(#{config.root}/lib)
+
     # https://github.com/SchemaPlus/schema_plus_enums/issues/2
     config.active_record.schema_format = :sql
 
