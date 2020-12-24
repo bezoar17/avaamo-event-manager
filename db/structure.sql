@@ -237,7 +237,7 @@ CREATE UNIQUE INDEX index_users_on_username ON public.users USING btree (usernam
 --
 
 ALTER TABLE ONLY public.event_users
-    ADD CONSTRAINT fk_rails_2fc76a96e7 FOREIGN KEY (user_id) REFERENCES public.users(id);
+    ADD CONSTRAINT fk_rails_2fc76a96e7 FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -245,7 +245,7 @@ ALTER TABLE ONLY public.event_users
 --
 
 ALTER TABLE ONLY public.event_users
-    ADD CONSTRAINT fk_rails_55572bff4d FOREIGN KEY (event_id) REFERENCES public.events(id);
+    ADD CONSTRAINT fk_rails_55572bff4d FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
 
 
 --

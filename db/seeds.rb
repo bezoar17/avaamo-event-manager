@@ -39,7 +39,8 @@ end
 def seed_events_from_csv(seed_file)
   # seed rsvps
   username_h = User.pluck(:username,:id).to_h
-  rsvp_values = []
+  event_h = {}
+  all_rsvp_values = []
 
   # seed each event, and collect it's rsvps
   CSV.foreach(seed_file, headers: true) do |row|
@@ -48,55 +49,45 @@ def seed_events_from_csv(seed_file)
     next if !allday && (DateTime.parse(row["endtime"]) < DateTime.parse(row["starttime"]))
 
     event = Event.create!(row.to_h.merge(allday: allday).except(AppConstant::Defaults::USER_RSVP_COLUMN))
+    event_h[event.id] = event
 
-    # handle rsvp to event - at different times
-    rsvp_values += row[AppConstant::Defaults::USER_RSVP_COLUMN].to_s.split(AppConstant::Defaults::RSVP_USER_SEPARATOR).map do |val|
+    all_rsvp_values += row[AppConstant::Defaults::USER_RSVP_COLUMN].to_s.split(AppConstant::Defaults::RSVP_USER_SEPARATOR).map do |val|
       username, rsvp = val.split(AppConstant::Defaults::RSVP_VALUE_SEPARATOR)
       { event_id: event.id, user_id: username_h[username], rsvp: rsvp }
     end
   end
 
-  # process, user -events, to update rsvp values
+  no_maybe_rsvp_values, yes_rsvp_values = all_rsvp_values.partition { |e| e[:rsvp] != "yes" }
+  all_rsvp_values = no_maybe_rsvp_values + update_yes_rsvps(yes_rsvp_values, event_h)
 
   # seed rsvps in bulk
-  insert_in_bulk(EventUser, rsvp_values)
-
-  # rsvp_values.each do |entry|
-  #   EventUser.create!(entry)
-  # end;
+  insert_in_bulk(EventUser, all_rsvp_values)
 end
+
+# takes all yes rsvps for a user and ensures
+# max amount of user rsvps are yes for non-overlapping events, returns the same format
+def update_yes_rsvps(yes_rsvp_values, event_h)
+  yes_rsvp_values.group_by{|e| e[:user_id] }.transform_values do |rsvps|
+    # process the rsvps for a user
+
+    sorted_rsvps = rsvps.map do |entry|
+      entry[:event] = event_h[entry[:event_id]]
+      entry
+    end.sort_by {|e| e[:event].endtime}
+
+
+    previous_yes_endtime = sorted_rsvps.first[:event].endtime
+    sorted_rsvps[1..-1].each do |entry|
+      if entry[:event].starttime < previous_yes_endtime
+        # current event overlaps with previous yes rsvp
+        entry[:rsvp] = :no
+      else
+        previous_yes_endtime = entry[:event].endtime
+      end
+    end
+
+    sorted_rsvps.map { |e| e.except(:event) }
+  end.values.flatten # revert the grouping and return
+end
+
 seed_events_from_csv('db/seeds/events.csv')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
