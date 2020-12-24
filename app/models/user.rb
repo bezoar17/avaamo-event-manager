@@ -12,7 +12,7 @@ class User < ApplicationRecord
     events.where.not(event_users: {rsvp: nil}).select(:id, :title, :description, :starttime, :endtime, :rsvp)
   end
 
-  def availability(start_date, end_date, slot_size = AppConstant::Defaults::DEFAULT_INTERVAL)
+  def availability(start_date:, end_date:, slot_size: AppConstant::Defaults::DEFAULT_INTERVAL)
     relevant_events = self.attending_events.in_date_range(start_date: start_date, end_date: end_date)
 
     intervals = ::Util::Time.time_slots(start_date.beginning_of_day, end_date.end_of_day, slot_size.seconds)
