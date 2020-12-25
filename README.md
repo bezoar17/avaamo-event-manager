@@ -2,6 +2,9 @@
 
 **Problem Statement** [PDF](https://github.com/bezoar17/avaamo-event-manager/blob/main/Event%20Manager%20(Iteration%201).pdf)
 
+## GraphQL Version
+The [graphql](https://github.com/bezoar17/avaamo-event-manager/tree/graphql) branch has GraphQL instead of REST as the api paradigm
+
 ## Setup
 ```
 This app uses ruby 2.5, rails 6 (api only mode), Postgres 11.9, rpsec 4.0 and is setup using docker
