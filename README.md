@@ -1,6 +1,6 @@
 # AVAAMO EVENT MANAGER - GRAPHQL VERSION
 
-[Main branch with REST api][https://github.com/bezoar17/avaamo-event-manager/tree/graphql]
+[Main branch with REST api](https://github.com/bezoar17/avaamo-event-manager/)
 
 ```
   This branch uses graphql as the api contract. Due to this all controllers are replaced by one graphql controller
